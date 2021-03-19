@@ -1,167 +1,219 @@
+#based on
+#https://levelup.gitconnected.com/writing-tetris-in-python-2a16bddb5318
+
+
+import random
+import tkinter as tk
+
+colors = ['', 'red', 'green', 'blue',]
+
 class Block(object):
-    shapes = ['I', 'J', 'L', 'O', 'S', 'T', 'Z']
-    def __init__(self, shape, col, row):
-        self.shape = shape
-        self.col, self.row = col, row
-        self.blockSize = 10 #must come from canvas or well/matrix object
-        self.calculateVertices()
+    x, y = 0, 0
+    blocks = [
+        [[1, 5, 9, 13], [4, 5, 6, 7]], #I
+        [[1, 2, 5, 6]], #O
+        [[1, 2, 5, 9], [0, 4, 5, 6], [1, 5, 9, 8], [4, 5, 6, 10]], #J
+        [[1, 2, 6, 10], [5, 6, 7, 9], [2, 6, 10, 11], [3, 5, 6, 7]], #L
+        [[1, 4, 5, 6], [1, 4, 5, 9], [4, 5, 6, 9], [1, 5, 6, 9]], #T
+        [[5, 6, 10, 11], [2, 5, 6, 9]], #Z
+        [[6, 7, 9, 10], [1, 5, 6, 10]], #S
+              ]
+    
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.type = random.randint(0, len(self.blocks) - 1)
+        self.color = random.randint(1, (len(colors) - 1))
+        self.rotation = 0
 
-    def print(self):
-        print('Shape ', self.shape, ' at ', self.row, ',', self.col, sep='')
+    def image(self):
+        return self.blocks[self.type][self.rotation]
 
-    def calculateVertices(self):
-        if self.shape == 'I':
-            sides = [1, 4, 1, 4]
-            x0, y0 = self.blockSize * self.col, self.blockSize * (self.row + 1)
-            x1, y1 = x0, y0 - self.blockSize * 1
-            x2, y2 = x1 + self.blockSize * 4, y1
-            x3, y3 = x2, y2 + self.blockSize * 1
-            self.vertices = [x0, y0, x1, y1, x2, y2, x3, y3]
-        elif self.shape == 'O':
-            sizes = [2, 2, 2, 2]
-            x0, y0 = self.blockSize * self.col, self.blockSize * (self.row + 1)
-            x1, y1 = x0, y0 - self.blockSize * 2
-            x2, y2 = x1 + self.blockSize * 2, y1
-            x3, y3 = x2, y2 + self.blockSize * 2
-            self.vertices = [x0, y0, x1, y1, x2, y2, x3, y3]
-        elif self.shape == 'J':
-            sizes = [2, 1, 1, 2, 1, 3]
-            x0, y0 = self.blockSize * self.col, self.blockSize * (self.row + 1)
-            x1, y1 = x0, y0 - self.blockSize * 2
-            x2, y2 = x1 + self.blockSize * 1, y1
-            x3, y3 = x2, y2 + self.blockSize * 1
-            x4, y4 = x3 + self.blockSize * 2, y3
-            x5, y5 = x4, y4 + self.blockSize * 1
-            self.vertices = [x0, y0, x1, y1, x2, y2, x3, y3, x4, y4, x5, y5]
-        elif self.shape == 'L':
-            sizes = [1, 2, 1, 1, 2, 3]
-            x0, y0 = self.blockSize * self.col, self.blockSize * (self.row + 1)
-            x1, y1 = x0, y0 - self.blockSize * 1
-            x2, y2 = x1 + self.blockSize * 2, y1
-            x3, y3 = x2, y2 - self.blockSize * 1
-            x4, y4 = x3 + self.blockSize * 1, y3
-            x5, y5 = x4, y4 + self.blockSize * 2
-            self.vertices = [x0, y0, x1, y1, x2, y2, x3, y3, x4, y4, x5, y5]
-        elif self.shape == 'S':
-            sizes = [1, 1, 1, 2, 1, 1, 1, 2]
-            x0, y0 = self.blockSize * self.col, self.blockSize * (self.row + 1)
-            x1, y1 = x0, y0 - self.blockSize * 1
-            x2, y2 = x1 + self.blockSize * 1, y1
-            x3, y3 = x2, y2 - self.blockSize * 1
-            x4, y4 = x3 + self.blockSize * 2, y3
-            x5, y5 = x4, y4 + self.blockSize * 1
-            x6, y6 = x5 - self.blockSize * 1, y5
-            x7, y7 = x6, y6 + self.blockSize * 1
-            self.vertices = [x0, y0, x1, y1, x2, y2, x3, y3, x4, y4, x5, y5, x6, y6, x7, y7]
-        elif self.shape == 'Z':
-            sizes = [1, 1, 1, 2, 1, 1, 1, 2]
-        elif self.shape == 'T':
-            sizes = [1, 1, 1, 1, 1, 1, 1, 3]
-        else:
-            pass
+    def rotate(self):
+        self.rotation = (self.rotation + 1) % len(self.blocks[self.type])
 
-    def draw(self, canvas):
+##    def calculateVertices(self):
+##        self.vertices = []
+##
+##    def draw(self, canvas):
+##        tiles = self.image()
+##        vertices = []
+##        for array in self.vertices:
+##            vertices.append(array[0])
+##            vertices.append(array[1])
+##        try:
+##            canvas.delete(self.polygon)
+##        except:
+##            pass
+##        self.polygon = canvas.create_polygon(*vertices, fill='red')
+
+
+class Tetris(tk.Frame):
+    level = 2
+    score = 0
+    state = 'start'
+    field = []
+    height = 0
+    width = 0
+    x = 100
+    y = 60
+    zoom = 20
+    block = None
+    
+    def __init__(self, window, height, width):
+        super().__init__(window, borderwidth=2, relief='groove')
+        self.height = height
+        self.width = width
+        self.gridSize = 20
+        self.canvas = tk.Canvas(self, width=self.width*self.gridSize, height=self.height*self.gridSize)
+        self.canvas.pack()
+##        self.bind('<Down>', self.goDown)
+        self.bind('<Down>', self.goSpace)
+        self.bind('<Left>', lambda event, dx=-1: self.goSide(event, dx))
+        self.bind('<Right>', lambda event, dx=1: self.goSide(event, dx))
+        self.bind('<Up>', self.rotate)
+        self.field = []
+        self.score = 0
+        self.state = 'start'
+        for i in range(height):
+            newLine = []
+            for j in range(width):
+                newLine.append(0)
+            self.field.append(newLine)
+        self.startGame()
+
+    def createBlock(self):
+        self.block = Block(3, 0)
+        self.drawBlock()
+
+    def drawBlock(self):
         try:
-            canvas.delete(self.polygon)
+            for rectangle in self.polygon:
+                self.canvas.delete(rectangle)
         except:
             pass
-        self.polygon = canvas.create_polygon(*self.vertices, fill='red')
-            
-    def move(self, event, direction, canvas):
-        if direction == 'down':
-            self.row += 1
-        elif direction == 'left':
-            self.col -= 1
-        elif direction == 'right':
-            self.col += 1
-        self.print()
-        self.calculateVertices()
-        self.draw(canvas)
+        self.polygon = []
+        for i in range(4):
+            for j in range(4):
+                p = 4 * i + j
+                if p in self.block.image():
+                    x1 = (self.block.x + j) * self.gridSize
+                    y1 = (self.block.y + i) * self.gridSize
+                    x2 = x1 + self.gridSize
+                    y2 = y1 + self.gridSize
+                    rectangle = self.canvas.create_rectangle(x1, y1, x2, y2, fill=colors[self.block.color])
+                    self.polygon.append(rectangle)
 
-##    def rotate(self, event, direction, canvas):
-##        #rotate around x0, y0 !
-##        print(self.vertices)
-##        if direction == '+':
-##            R = [[0, -1], [1, 0]]
-##            for i in range(0, len(self.vertices), 2):
-##                #R.v
-##                xi = -self.vertices[i+1]
-##                yi = self.vertices[i]
-##                self.vertices[i], self.vertices[i+1] = xi, yi
-##            pass
-##        elif direction == '-':
-##            R = [[0, 1], [-1, 0]]
-##            pass
-##        else:
-##            pass
-##        print(self.vertices)
-##        self.draw(canvas)
-
-def mover(canvas):
-    def count():
-        global counter
-        #print(counter)
-        if running == True:
-            block.move('<Down>', 'down', canvas)
-            canvas.after(1000, count)
-            counter -= 1
-        else:
+    def drawField(self):
+        try:
+            for rectangle in self.fieldPolygons:
+                self.canvas.delete(rectangle)
+        except:
             pass
-    count()
+        self.fieldPolygons = []
+        for i in range(self.height):
+            for j in range(self.width):
+                if self.field[i][j] > 0:
+                    x1 = j * self.gridSize
+                    y1 = i * self.gridSize
+                    x2 = x1 + self.gridSize
+                    y2 = y1 + self.gridSize
+                    rectangle = self.canvas.create_rectangle(x1, y1, x2, y2, fill=colors[self.field[i][j]])
+                    self.fieldPolygons.append(rectangle)
+
+    def intersect(self):
+        intersection = False
+        for i in range(4):
+            for j in range(4):
+                if 4 * i + j in self.block.image():
+                    condition1 = i + self.block.y > self.height - 1
+                    condition2 = j + self.block.x > self.width - 1
+                    condition3 = j + self.block.x < 0
+##                    condition4 = self.field[i + self.block.y][j + self.block.x] > 0 #????
+                    if condition1 or condition2 or condition3 or self.field[i + self.block.y][j + self.block.x] > 0: #????
+                        intersection = True
+        return intersection
+
+    def freeze(self):
+        for i in range(4):
+            for j in range(4):
+                if 4 * i + j in self.block.image():
+                    self.field[i + self.block.y][j + self.block.x] = self.block.color
+        self.drawField()
+        self.breakLines()
+        self.createBlock()
+        if self.intersect():
+            self.state = 'gameover'
+
+    def breakLines(self):
+        lines = 0
+        for i in range(1, self.height):
+            zeros = 0
+            for j in range(self.width):
+                if self.field[i][j] == 0:
+                    zeros += 1
+            if zeros == 0:
+                lines += 1
+                for i1 in range(i, 1, -1):
+                    for j in range(self.width):
+                        self.field[i1][j] = self.field[i1 - 1][j]
+        self.score += lines ** 2
+        if lines > 0:
+            print('score:', self.score)
+        self.drawField()
+
+    def goSpace(self, event):
+        while not self.intersect():
+            self.block.y += 1
+        self.block.y -= 1
+        self.freeze()
+        self.drawBlock()
+
+    def goDown(self):#, event):
+        self.block.y += 1
+        if self.intersect():
+            self.block.y -= 1
+            self.freeze()
+        else:
+            self.drawBlock()
+
+    def goSide(self, event, dx):
+        oldX = self.block.x
+        self.block.x += dx
+        if self.intersect():
+            self.block.x = oldX
+        else:
+            self.drawBlock()
+
+    def rotate(self, event):
+        oldRotation = self.block.rotation
+        self.block.rotate()
+        if self.intersect():
+            self.block.rotation = oldRotation
+        else:
+            self.drawBlock()
+
+    def startGame(self):
+        if self.block is None:
+            self.createBlock()
+        self.state = 'running'
+        self.mover()
+
+    def mover(self):
+        def count():
+            if self.state == 'running':
+                self.goDown()
+                self.canvas.after(1000, count)
+            elif self.state == 'gameover':
+                print('gameover')
+            else:
+                pass
+        count()
 
 
-##def drawShape(x0, y0, sides, blockSize, angle):
-##    #calculate vertices from side lengths, given an origin an starting angle
-##    #x0, y0: origin
-##    #blockSize: length of a unit size
-##    #angle: starting direction from origin, 90 = up
-##    vertices = [(x0, y0), ]
-##    i = 1
-##    while len(vertices) < len(sides):
-##        xi, yi = x0, y0 + blockSize * sides[i-1]
-##        vertices.append((xi, yi))
-##        i += 1
-##        angle = ( angle + 90 ) % 360
-##        print(i, angle)
-##    return vertices
-##print(drawShape(0, 0, [1, 1, 1, 1], 10, 90))
-    
-
-
-import tkinter as tk
-import time
-
-global running
-running = False
-global counter
-counter = 0
 root = tk.Tk()
-frame = tk.Frame(root, borderwidth=2, relief='groove')
-frame.focus_set()
-frame.pack()
-canvas = tk.Canvas(frame, width=100, height=240)
-canvas.pack()
-frame.bind('<Down>', lambda event, direction='down', canvas=canvas: block.move(event, direction, canvas))
-frame.bind('<Left>', lambda event, direction='left', canvas=canvas: block.move(event, direction, canvas))
-frame.bind('<Right>', lambda event, direction='right', canvas=canvas: block.move(event, direction, canvas))
-frame.bind('<+>', lambda event, direction='+', canvas=canvas: block.rotate(event, direction, canvas))
-block = Block('S', 1, 1)
-block.print()
-block.draw(canvas)
-##moveDownButton = tk.Button(root, text='down', command=lambda direction='down', canvas=canvas: block.move(direction, canvas))
-##moveDownButton.pack()
-##moveLeftButton = tk.Button(root, text='left', command=lambda direction='left', canvas=canvas: block.move(direction, canvas))
-##moveLeftButton.pack()
-##moveRightButton = tk.Button(root, text='right', command=lambda direction='right', canvas=canvas: block.move(direction, canvas))
-##moveRightButton.pack()
-
-running = True
-mover(canvas)
-
-tk.mainloop()
-
-
-
-
-    
+tetris = Tetris(root, 20, 10)
+tetris.focus_set()
+tetris.pack()
+root.mainloop()
 
