@@ -5,7 +5,7 @@
 import random
 import tkinter as tk
 
-colors = ['', 'red', 'green', 'blue',]
+colors = ['', 'red', 'green', 'blue', 'cyan', 'yellow', 'magenta']
 
 class Block(object):
     x, y = 0, 0
@@ -49,17 +49,6 @@ class Block(object):
 
 
 class Tetris(tk.Frame):
-    level = 2
-    score = 0
-    state = 'start'
-    field = []
-    height = 0
-    width = 0
-    x = 100
-    y = 60
-    zoom = 20
-    block = None
-    
     def __init__(self, window, height, width):
         super().__init__(window, borderwidth=2, relief='groove')
         self.height = height
@@ -67,19 +56,26 @@ class Tetris(tk.Frame):
         self.gridSize = 20
         self.canvas = tk.Canvas(self, width=self.width*self.gridSize, height=self.height*self.gridSize)
         self.canvas.pack()
-##        self.bind('<Down>', self.goDown)
+        #self.bind('<Down>', self.goDown)
         self.bind('<Down>', self.goSpace)
         self.bind('<Left>', lambda event, dx=-1: self.goSide(event, dx))
         self.bind('<Right>', lambda event, dx=1: self.goSide(event, dx))
         self.bind('<Up>', self.rotate)
+        self.scoreLabel = tk.Label(self, text='Score:')
+        self.scoreLabel.pack()
         self.field = []
+        self.level = 1
+        self.fps = int(1000/self.level)
         self.score = 0
         self.state = 'start'
+        self.block = None
+        self.blockOutline = 'grey'
         for i in range(height):
             newLine = []
             for j in range(width):
                 newLine.append(0)
             self.field.append(newLine)
+        self.drawField()
         self.startGame()
 
     def createBlock(self):
@@ -101,7 +97,7 @@ class Tetris(tk.Frame):
                     y1 = (self.block.y + i) * self.gridSize
                     x2 = x1 + self.gridSize
                     y2 = y1 + self.gridSize
-                    rectangle = self.canvas.create_rectangle(x1, y1, x2, y2, fill=colors[self.block.color])
+                    rectangle = self.canvas.create_rectangle(x1, y1, x2, y2, fill=colors[self.block.color], outline=self.blockOutline)
                     self.polygon.append(rectangle)
 
     def drawField(self):
@@ -113,13 +109,15 @@ class Tetris(tk.Frame):
         self.fieldPolygons = []
         for i in range(self.height):
             for j in range(self.width):
+                x1 = j * self.gridSize
+                y1 = i * self.gridSize
+                x2 = x1 + self.gridSize
+                y2 = y1 + self.gridSize
                 if self.field[i][j] > 0:
-                    x1 = j * self.gridSize
-                    y1 = i * self.gridSize
-                    x2 = x1 + self.gridSize
-                    y2 = y1 + self.gridSize
-                    rectangle = self.canvas.create_rectangle(x1, y1, x2, y2, fill=colors[self.field[i][j]])
+                    rectangle = self.canvas.create_rectangle(x1, y1, x2, y2, fill=colors[self.field[i][j]], outline=self.blockOutline)
                     self.fieldPolygons.append(rectangle)
+                else:
+                    self.canvas.create_rectangle(x1, y1, x2, y2, fill='white', outline=self.blockOutline)
 
     def intersect(self):
         intersection = False
@@ -139,8 +137,8 @@ class Tetris(tk.Frame):
             for j in range(4):
                 if 4 * i + j in self.block.image():
                     self.field[i + self.block.y][j + self.block.x] = self.block.color
-        self.drawField()
         self.breakLines()
+        self.drawField()
         self.createBlock()
         if self.intersect():
             self.state = 'gameover'
@@ -160,7 +158,8 @@ class Tetris(tk.Frame):
         self.score += lines ** 2
         if lines > 0:
             print('score:', self.score)
-        self.drawField()
+            self.scoreLabel['text'] = 'Score: ' + str(self.score)
+        #self.drawField()
 
     def goSpace(self, event):
         while not self.intersect():
@@ -203,7 +202,7 @@ class Tetris(tk.Frame):
         def count():
             if self.state == 'running':
                 self.goDown()
-                self.canvas.after(1000, count)
+                self.canvas.after(self.fps, count)
             elif self.state == 'gameover':
                 print('gameover')
             else:
